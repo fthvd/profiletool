@@ -34,7 +34,7 @@ from qgis.core import QgsGeometry, QgsMapLayer, QgsPoint, QgsPointXY, QgsProject
 from qgis.core import QgsVectorLayer, QgsFeature, QgsWkbTypes
 
 # from qgis.gui import *
-from qgis.PyQt.QtCore import QSettings, Qt
+from qgis.PyQt.QtCore import QSettings, Qt, QCoreApplication
 
 # from qgis.PyQt.QtGui import QColor
 # from qgis.PyQt.QtSvg import *  # required in some distros
@@ -51,6 +51,12 @@ from .selectlinetool import SelectLineTool
 
 
 class ProfileToolCore(QWidget):
+
+    @staticmethod
+    def tr(text):
+        # ⚠️ le contexte doit correspondre au nom de la classe UI
+        return QCoreApplication.translate("ProfileToolCore", text)
+
     def __init__(self, iface, plugincore, parent=None):
         QWidget.__init__(self, parent)
         self.iface = iface
@@ -81,11 +87,19 @@ class ProfileToolCore(QWidget):
         self.x_cursor = None  # Keep track of last x position of cursor
         # the dockwidget
         self.dockwidget = PTDockWidget(self.iface, self)
-        # Initialize the dockwidget combo box with the list of available profiles.
+
+        # Initialize the dock widget combo box with the translated list of available profiles.
         # (Use sorted list to be sure that Height is always on top and
         # the combobox order is consistent)
-        for profile in sorted(profilers.PLOT_PROFILERS):
-            self.dockwidget.plotComboBox.addItem(profile)
+        self.dockwidget.plotComboBox.clear()
+
+        for key in sorted(profilers.PLOT_PROFILERS):
+            label = profilers.PLOT_PROFILER_LABELS[key]
+            self.dockwidget.plotComboBox.addItem(
+                self.tr(label),  # ✅ traduction tardive → OK
+                key
+            )
+
         self.dockwidget.plotComboBox.setCurrentIndex(0)
         self.dockwidget.plotComboBox.currentIndexChanged.connect(lambda index: self.plotProfil())
         # dockwidget graph zone
@@ -241,7 +255,8 @@ class ProfileToolCore(QWidget):
         self.toolrenderer.setBufferGeometry(geoms)
 
         # Update coordinates to use in plot (height, slope %...)
-        profile_func = profilers.PLOT_PROFILERS[self.dockwidget.plotComboBox.currentText()]
+        key = self.dockwidget.plotComboBox.currentData()
+        profile_func = profilers.PLOT_PROFILERS[key]
 
         for profile in self.profiles:
             profile["plot_x"], profile["plot_y"] = profile_func(profile)
@@ -491,7 +506,7 @@ class ProfileToolCore(QWidget):
                                 item.setPos(xtoplot)
                             elif item.name() == "cross_horizontal":
                                 item.show()
-                                item.setPos(ytoplot)
+                                # item.setPos(ytoplot)
                         elif (
                             str(type(item))
                             == "<class 'profiletool.pyqtgraph.graphicsItems.TextItem.TextItem'>"
@@ -506,3 +521,5 @@ class ProfileToolCore(QWidget):
                                 item.setPos(range[0][0], ytoplot)
             # tracking part
             self.updateCursorOnMap(xtoplot)
+
+
