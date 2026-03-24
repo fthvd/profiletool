@@ -39,7 +39,7 @@ from qgis.core import (
 # from qgis.gui import *
 # from qgis.PyQt import QtCore, QtGui, uic
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QModelIndex, Qt, QVariant, pyqtSignal
+from qgis.PyQt.QtCore import QModelIndex, Qt, QVariant, pyqtSignal, QCoreApplication
 from qgis.PyQt.QtGui import QStandardItemModel
 from qgis.PyQt.QtWidgets import (
     QApplication,
@@ -75,6 +75,10 @@ class PTDockWidget(QDockWidget, FormClass):
     TYPE = None
 
     closed = pyqtSignal()
+
+    @staticmethod
+    def tr(text):
+        return QCoreApplication.translate("PTDockWidget", text)
 
     def __init__(self, iface1, profiletoolcore, parent=None):
         QDockWidget.__init__(self, parent)
@@ -139,10 +143,16 @@ class PTDockWidget(QDockWidget, FormClass):
     # init things ****************************************************************
     # ********************************************************************************
 
+    # def addOptionComboboxItems(self):
+    #     self.cboLibrary.addItem("PyQtGraph")
+    #     if matplotlib_loaded:
+    #         self.cboLibrary.addItem("Matplotlib")
+
     def addOptionComboboxItems(self):
-        self.cboLibrary.addItem("PyQtGraph")
+        self.cboLibrary.clear()
+        self.cboLibrary.addItem(self.tr("PyQtGraph"), "PyQtGraph")
         if matplotlib_loaded:
-            self.cboLibrary.addItem("Matplotlib")
+            self.cboLibrary.addItem(self.tr("Matplotlib"), "Matplotlib")
 
     def selectionMethod(self, item):
         self.profiletoolcore.toolrenderer.setSelectionMethod(item)
@@ -152,7 +162,8 @@ class PTDockWidget(QDockWidget, FormClass):
             self.profiletoolcore.toolrenderer.connectTool()
 
     def changePlotLibrary(self, item):
-        self.plotlibrary = self.cboLibrary.itemText(item)
+        # self.plotlibrary = self.cboLibrary.itemText(item)
+        self.plotlibrary = self.cboLibrary.itemData(item)
         self.addPlotWidget(self.plotlibrary)
 
         if self.plotlibrary == "PyQtGraph":
@@ -176,7 +187,7 @@ class PTDockWidget(QDockWidget, FormClass):
             self.cbSameAxisScale.setCheckState(Qt.CheckState.Unchecked)
 
         else:
-            self.checkBox_mpl_tracking.setCheckState(Qt.CheckState.Unchecked)
+            self.checkBox_mpl_tracking.setCheckState(0)
             self.checkBox_mpl_tracking.setEnabled(False)
             self.cbSameAxisScale.setCheckState(Qt.CheckState.Unchecked)
 
@@ -195,9 +206,16 @@ class PTDockWidget(QDockWidget, FormClass):
             layout.addWidget(self.plotWdg)
             self.TYPE = "PyQtGraph"
             self.cbxSaveAs.clear()
-            self.cbxSaveAs.addItems(
-                ["Graph - PNG", "Graph - SVG", "3D line - DXF", "2D Profile - DXF"]
-            )
+            # self.cbxSaveAs.addItems(
+            #     ["Graph - PNG", "Graph - SVG", "3D line - DXF", "2D Profile - DXF"]
+            # )
+            self.cbxSaveAs.clear()
+            self.cbxSaveAs.addItem(self.tr("Graph - PDF"), "PDF")
+            self.cbxSaveAs.addItem(self.tr("Graph - PNG"), "PNG")
+            self.cbxSaveAs.addItem(self.tr("Graph - SVG"), "SVG")
+            self.cbxSaveAs.addItem(self.tr("Graph - print (PS)"), "PRINT")
+            self.cbxSaveAs.addItem(self.tr("3D line - DXF"), "DXF_3D")
+            self.cbxSaveAs.addItem(self.tr("2D Profile - DXF"), "DXF_2D")
 
         elif library == "Matplotlib":
             self.stackedWidget.setCurrentIndex(0)
@@ -316,8 +334,6 @@ class PTDockWidget(QDockWidget, FormClass):
 
         self.tableViewTool.addLayer(self.iface, self.mdl, layer1)
         self.profiletoolcore.updateProfil(self.profiletoolcore.pointstoDraw, False)
-        if layer1 is None: # no layer selected in the dropdown
-            return
         layer1.dataChanged.connect(self.refreshPlot)
 
     def removeLayer(self, index=None):
@@ -345,7 +361,7 @@ class PTDockWidget(QDockWidget, FormClass):
         if (
             not self.mdl.item(item.row(), 5) is None
             and item.column() == 4
-            and self.mdl.item(item.row(), 5).data(Qt.ItemDataRole.EditRole).type()
+            and self.mdl.item(item.row(), 5).data(Qt.EditRole).type()
             == QgsMapLayer.LayerType.VectorLayer
         ):
 
@@ -566,22 +582,40 @@ class PTDockWidget(QDockWidget, FormClass):
         # return QDockWidget.closeEvent(self, event)
 
     # generic save as button
+    # def saveAs(self):
+    #     idx = self.cbxSaveAs.currentText()
+    #     if idx == "Graph - PDF":
+    #         self.outPDF()
+    #     elif idx == "Graph - PNG":
+    #         self.outPNG()
+    #     elif idx == "Graph - SVG":
+    #         self.outSVG()
+    #     elif idx == "Graph - print (PS)":
+    #         self.outPrint()
+    #     elif idx == "3D line - DXF":
+    #         self.outDXF("3D")
+    #     elif idx == "2D Profile - DXF":
+    #         self.outDXF("2D")
+    #     else:
+    #         print("plottingtool: invalid index " + str(idx))
     def saveAs(self):
-        idx = self.cbxSaveAs.currentText()
-        if idx == "Graph - PDF":
+        key = self.cbxSaveAs.currentData()
+
+        if key == "PDF":
             self.outPDF()
-        elif idx == "Graph - PNG":
+        elif key == "PNG":
             self.outPNG()
-        elif idx == "Graph - SVG":
+        elif key == "SVG":
             self.outSVG()
-        elif idx == "Graph - print (PS)":
+        elif key == "PRINT":
             self.outPrint()
-        elif idx == "3D line - DXF":
+        elif key == "DXF_3D":
             self.outDXF("3D")
-        elif idx == "2D Profile - DXF":
+        elif key == "DXF_2D":
             self.outDXF("2D")
         else:
-            print("plottingtool: invalid index " + str(idx))
+            # Message non bloquant, mais traduisible
+            print(self.tr("plottingtool: invalid save format key: {}").format(key))
 
     def outPrint(self):  # Postscript file rendering doesn't work properly yet.
         PlottingTool().outPrint(self.iface, self, self.mdl, self.cboLibrary.currentText())
