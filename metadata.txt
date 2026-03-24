@@ -12,7 +12,7 @@ supportsQt6 = True
 experimental = False
 deprecated = False
 changelog = 
-	4.3.4 : Modifications pour prise en compte de la traduction automatique complête (par @fthvd francois.thevand@gmail.com)
+	4.3.4 : Modifications to take into account the complete machine translation (by @fthvd)
 	4.3.3 : QGIS4 support (#106 by @kannes)
 	4.3.2 : Add support for picking and saving profile points when "Link mouse position" and "Tools Settings > Save seleted points..." are enabled(by Christoph Candido - github/cxcandid)
 	- points are stored in layer "profile_points" with fields "d" (horizontal distance from startpoint) and "z" (raster band value)
